@@ -19,25 +19,35 @@
         "icon": "book",
         "groups": [
           {
-            "group": "Getting Started",
-            "icon": "rocket",
-            "pages": [
-              {
-                "title": "Introduction",
-                "path": "introduction",
-                "icon": "home"
-              },
-              {
-                "title": "Quickstart",
-                "path": "quickstart",
-                "icon": "zap"
-              }
-            ]
-          },
-          {
             "group": "Core Concepts",
             "icon": "layers",
             "pages": [
+              {
+                "group": "Getting Started",
+                "icon": "rocket",
+                "pages": [
+                  {
+                    "title": "Introduction",
+                    "path": "introduction",
+                    "icon": "home"
+                  },
+                  {
+                    "title": "Quickstart",
+                    "path": "quickstart",
+                    "icon": "zap"
+                  }
+                ]
+              },
+              {
+                "group": "Testing",
+                "pages": [
+                  {
+                    "title": "Tester",
+                    "path": "Tester"
+                  }
+                ],
+                "icon": "activity-square"
+              },
               {
                 "title": "Features",
                 "path": "features",
@@ -47,15 +57,6 @@
                 "title": "Authentication",
                 "path": "authentication",
                 "icon": "lock"
-              }
-            ]
-          },
-          {
-            "group": "Testing",
-            "pages": [
-              {
-                "title": "Tester",
-                "path": "Tester"
               }
             ]
           }
