@@ -30,16 +30,19 @@
         "groups": [
           {
             "group": "Natural",
-            "pages": []
+            "pages": [],
+            "icon": "flower2"
           },
           {
             "group": "Synthetic",
             "pages": [
               {
                 "title": "Sandalore",
-                "path": "sandalore"
+                "path": "sandalore",
+                "badge": "New"
               }
-            ]
+            ],
+            "icon": "test-tube-diagonal-icon"
           }
         ]
       },
