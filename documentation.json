@@ -49,6 +49,15 @@
                 "icon": "lock"
               }
             ]
+          },
+          {
+            "group": "Testing",
+            "pages": [
+              {
+                "title": "Tester",
+                "path": "Tester"
+              }
+            ]
           }
         ]
       },
