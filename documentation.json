@@ -15,53 +15,15 @@
   "navigation": {
     "tabs": [
       {
-        "tab": "Documentation",
+        "tab": "Perfumery Materials",
         "icon": "book",
         "groups": [
           {
-            "group": "Core Concepts",
-            "icon": "layers",
-            "pages": [
-              {
-                "group": "Getting Started",
-                "icon": "rocket",
-                "pages": [
-                  {
-                    "title": "Introduction",
-                    "path": "introduction",
-                    "icon": "home"
-                  },
-                  {
-                    "title": "Quickstart",
-                    "path": "quickstart",
-                    "icon": "zap"
-                  }
-                ]
-              },
-              {
-                "group": "Testing",
-                "pages": [
-                  {
-                    "title": "Tester",
-                    "path": "Tester"
-                  }
-                ],
-                "icon": "activity-square"
-              },
-              {
-                "title": "Features",
-                "path": "features",
-                "icon": "file-text"
-              },
-              {
-                "title": "Authentication",
-                "path": "authentication",
-                "icon": "lock"
-              }
-            ]
+            "group": "Natural",
+            "pages": []
           },
           {
-            "group": "New Group",
+            "group": "Synthetic",
             "pages": [
               {
                 "title": "Sandalore",
@@ -87,42 +49,22 @@
         "icon": "help-circle",
         "pages": [
           {
-            "title": "Help Center",
-            "path": "help-center",
-            "icon": "home"
-          },
-          {
             "group": "FAQs",
             "icon": "help-circle",
             "expandable": false,
-            "pages": [
-              {
-                "title": "Getting Started FAQ",
-                "path": "help-center/faq/getting-started"
-              }
-            ]
+            "pages": []
           },
           {
             "group": "Troubleshooting",
             "icon": "alert-triangle",
             "expandable": false,
-            "pages": [
-              {
-                "title": "Cannot Access Project",
-                "path": "help-center/troubleshooting/cannot-access-project"
-              }
-            ]
+            "pages": []
           },
           {
             "group": "Guides",
             "icon": "book-open",
             "expandable": false,
-            "pages": [
-              {
-                "title": "Create Your First Doc",
-                "path": "help-center/guides/create-first-doc"
-              }
-            ]
+            "pages": []
           }
         ]
       },
