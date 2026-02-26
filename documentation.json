@@ -15,6 +15,16 @@
   "navigation": {
     "tabs": [
       {
+        "tab": "Welcome",
+        "pages": [
+          {
+            "title": "Getting Started",
+            "path": "getting-started"
+          }
+        ],
+        "icon": "align-center"
+      },
+      {
         "tab": "Perfumery Materials",
         "icon": "book",
         "groups": [
@@ -43,16 +53,6 @@
             "icon": "history"
           }
         ]
-      },
-      {
-        "tab": "Welcome",
-        "pages": [
-          {
-            "title": "Getting Started",
-            "path": "getting-started"
-          }
-        ],
-        "icon": "align-center"
       }
     ]
   }
