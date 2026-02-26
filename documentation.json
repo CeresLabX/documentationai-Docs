@@ -56,6 +56,17 @@
             "icon": "history"
           }
         ]
+      },
+      {
+        "tab": "Product Research",
+        "pages": [
+          {
+            "title": "Dell Pro Max 16 Plus Laptop",
+            "path": "dell-pro-max-16-plus-laptop",
+            "icon": "laptop"
+          }
+        ],
+        "icon": "lucide-text-search"
       }
     ]
   }
