@@ -71,5 +71,5 @@
   "ai": {
     "ai-assistant:enabled": true
   },
-  "template": "atlas"
+  "template": "classic"
 }
