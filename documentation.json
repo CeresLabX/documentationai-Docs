@@ -59,6 +59,15 @@
                 "icon": "lock"
               }
             ]
+          },
+          {
+            "group": "New Group",
+            "pages": [
+              {
+                "title": "Sandalore",
+                "path": "sandalore"
+              }
+            ]
           }
         ]
       },
