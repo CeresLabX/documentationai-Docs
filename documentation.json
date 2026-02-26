@@ -22,7 +22,8 @@
             "path": "getting-started"
           }
         ],
-        "icon": "align-center"
+        "icon": "align-center",
+        "public": true
       },
       {
         "tab": "Perfumery Materials",
@@ -44,7 +45,8 @@
             ],
             "icon": "test-tube-diagonal-icon"
           }
-        ]
+        ],
+        "public": true
       },
       {
         "tab": "Product Research",
@@ -58,5 +60,15 @@
         "icon": "lucide-text-search"
       }
     ]
+  },
+  "initialRoute": "getting-started",
+  "seo": {
+    "robots:index": false,
+    "robots:follow": false,
+    "sitemap:enabled": false,
+    "llms-txt:enabled": false
+  },
+  "ai": {
+    "ai-assistant:enabled": true
   }
 }
