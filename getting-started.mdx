@@ -1,0 +1,59 @@
+---
+title: CeresLab overview
+description: Find the current user-facing behavior for Mod Room, Trivia, and Stocks Sandbox in one concise CeresLab documentation index.
+---
+
+## Choose a project
+
+CeresLab includes three small apps with distinct user-facing workflows: shared media rooms, trivia games, and a stock-market sandbox. Use this page as the starting point for the current documented behavior.
+
+<Columns cols={3}>
+
+<Card title="Mod Room" href="/mod-room" icon="users" cta="Read the guide">
+
+Create or join shared playback rooms, share room-code URLs, queue media, browse Koofr files, and play tracker modules.
+
+
+</Card>
+
+<Card title="Trivia API" href="/trivia-api" icon="help-circle" cta="View endpoints">
+
+Load dynamic trivia questions, filter by difficulty, and understand how the current 80s, 90s, and Seinfeld boards present categories.
+
+
+</Card>
+
+<Card title="Stocks Sandbox API" href="/stocks-sandbox-api" icon="bar-chart" cta="View behavior">
+
+Use simulator, timeline, watchlist, buy, historical-price, and positions endpoints for the fake trading sandbox.
+
+
+</Card>
+
+
+</Columns>
+
+## What is documented
+
+The pages in this initial set document behavior verified from the connected application code. They focus on what users and API consumers can see or call, not on internal implementation details.
+
+<Callout kind="info">
+
+These docs intentionally cover only verified current behavior. If a feature is not represented in the reviewed code evidence, it is not described here.
+
+
+</Callout>
+
+## Current coverage
+
+- **Mod Room** — Room-code sharing, first-item queue auto-start, host playback controls, tracker playback, and Koofr browsing.
+- **Trivia** — Public question endpoints, optional difficulty filtering, response fields, random-question empty-state behavior, and fixed game category buckets.
+- **Stocks Sandbox** — Simulator endpoints, chart windows, refresh behavior, watchlist deletion rules, encoded tickers, historical prices, buys, and portfolio valuation fields.
+
+## Next steps
+
+Start with the page that matches the project you are using:
+
+- [Open Mod Room documentation](/mod-room)
+- [Open Trivia API documentation](/trivia-api)
+- [Open Stocks Sandbox API documentation](/stocks-sandbox-api)

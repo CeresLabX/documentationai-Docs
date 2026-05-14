@@ -1,0 +1,155 @@
+---
+title: Mod Room
+description: Share room-code URLs, manage queue playback, play tracker files, and browse Koofr media in the current Mod Room experience.
+---
+
+## Share a room by code
+
+Mod Room rooms can be joined from a room-code URL or by entering the code on the landing page. After a room loads, the browser address uses the shareable room-code route instead of the internal room identifier.
+
+<Steps>
+
+<Step title="Create or open a room">
+
+Open a room from the Mod Room landing page. The room header displays the current code as `ROOM: LOUNGE-7742`, and the host sees a `[HOST]` label beside it.
+
+
+</Step>
+
+<Step title="Share the room-code URL">
+
+Copy the browser URL after the room opens. Shared room URLs use this pattern:
+
+```text
+/room/code/LOUNGE-7742
+```
+
+
+</Step>
+
+<Step title="Join from a code">
+
+A guest can either open the room-code URL directly or enter the code in the `ROOM CODE` field on the landing page, then choose `[ENTER ROOM >>>]`.
+
+
+</Step>
+
+</Steps>
+
+<Callout kind="info">
+
+Room-code lookup is exposed through `GET /api/rooms/code/:code`. The page shows `Joining room...` while the code resolves.
+
+
+</Callout>
+
+## Queue playback behavior
+
+The queue is designed around a shared room player. When the room is idle and the first item is added to the queue, playback starts automatically for that item.
+
+Users add media through the queue controls:
+
+- `[+ ADD]` opens the media flow.
+- `[+ ADD MEDIA]` opens the add-media dialog.
+- `[ADD TO QUEUE]` adds the selected media item.
+
+### Host controls
+
+Only the host sees the main playback controls in the player.
+
+| Control | Behavior |
+|---|---|
+| `[▶ PLAY]` | Starts or resumes playback. |
+| `[⏸ PAUSE]` | Pauses playback for the room. |
+| `[⏭ NEXT]` | Skips to the next queue item. |
+| `[⏹ STOP]` | Stops current playback. |
+| `[▶]` on a queue item | Starts that specific queued item. |
+
+Non-host users see room status instead of host controls, such as `▶ SYNCED TO ROOM`, `⏸ PAUSED BY HOST`, or `⏹ IDLE`.
+
+<Callout kind="alert">
+
+Only the host can control playback or skip items. Queue removal is available to the host for any item, and to the user who added their own item.
+
+
+</Callout>
+
+## Play tracker files
+
+Tracker modules use a dedicated playback path and appear in the player as `MOD/TRACKER`. Tracker items also show a `TRACKER` badge so users can distinguish them from regular audio or video files.
+
+Supported tracker file families verified in the current player include:
+
+- MOD
+- XM
+- S3M
+- IT
+- AHX
+- MPT
+- MED
+- MTM
+- 669
+- ULT
+- STM
+- OKT
+
+<Callout kind="info">
+
+Tracker seeking is not currently supported. Start, pause, stop, and room sync behavior are available through the room player controls.
+
+
+</Callout>
+
+## Browse Koofr media
+
+The Add Media dialog includes `URL`, `UPLOAD`, and `KOOFR` tabs. The Koofr browser starts at `/public/music/mod` and shows the current location as `KOOFR: /public/music/mod`.
+
+<Steps>
+
+<Step title="Open the Koofr tab">
+
+Choose `KOOFR` in the Add Media dialog. The browser lists folders and files from the configured Koofr path.
+
+
+</Step>
+
+<Step title="Navigate folders">
+
+Select folder rows to enter directories, or choose `..` to move up one level. Directories are shown before files.
+
+
+</Step>
+
+<Step title="Select a media file">
+
+Choose a file from the list. Tracker files are prioritized among files and can show format badges and file sizes when that data is available.
+
+
+</Step>
+
+<Step title="Add the file to the queue">
+
+Use `[ADD: filename]` to add the selected file, or `[CANCEL]` to clear the selection.
+
+
+</Step>
+
+</Steps>
+
+### Koofr API paths
+
+<ParamField query="path" param-type="string" required="false">
+
+Used by `GET /api/koofr/list?path=...` to list a Koofr folder. If omitted by the UI flow, browsing starts from `/public/music/mod`.
+
+
+</ParamField>
+
+<ParamField query="path" param-type="string" required="true">
+
+Used by `GET /api/koofr/file?path=...` to resolve a selected Koofr file for playback.
+
+
+</ParamField>
+
+Koofr browsing can show `Loading...`, `Empty folder`, or an error state. If Koofr is not configured on the server, Koofr endpoints return `Koofr not configured`.

@@ -1,0 +1,386 @@
+---
+title: Stocks Sandbox API
+description: Use the Stocks Sandbox API for simulated trading, chart timelines, watchlists, historical prices, and portfolio valuation.
+---
+
+## Work with sandbox market data
+
+Stocks Sandbox exposes JSON APIs for fake trading, watchlist management, historical pricing, chart timelines, and strategy simulations. The browser UI uses the same endpoints described here.
+
+<Callout kind="info">
+
+Stocks Sandbox is a fake trading environment. Buying and selling update sandbox cash, positions, transactions, and valuation fields only.
+
+
+</Callout>
+
+## Run simulations
+
+The simulator can run a single intraday session or a last-30-days range for a selected ticker.
+
+### List available simulation dates
+
+Use `GET /api/simulator/:ticker/dates` to find dates with enough intraday points for a ticker.
+
+<ParamField path="ticker" param-type="string" required="true">
+
+Ticker symbol to inspect. Encode special characters when using the ticker in a URL path, such as `%5EIXIC` for `^IXIC`.
+
+
+</ParamField>
+
+<ResponseField name="ticker" field-type="string" required="true">
+
+Ticker symbol returned by the API.
+
+
+</ResponseField>
+
+<ResponseField name="dates" field-type="array" required="true">
+
+Simulation dates available for the ticker. Each date includes `date` and `points`; only dates with at least 20 intraday 5-minute points are returned.
+
+
+</ResponseField>
+
+### Run a simulator pass
+
+Use `GET /api/simulator/:ticker` with `startingCash` to run a simulation. Add `date` for a specific trading day or `range=30d` for the last-30-days mode.
+
+<ParamField path="ticker" param-type="string" required="true">
+
+Ticker symbol to simulate.
+
+
+</ParamField>
+
+<ParamField query="startingCash" param-type="number" required="true">
+
+Starting cash for the strategy run.
+
+
+</ParamField>
+
+<ParamField query="date" param-type="string" required="false">
+
+Single-day simulation date in `YYYY-MM-DD` format. If omitted, the simulator uses the latest stored valid trading day.
+
+
+</ParamField>
+
+<ParamField query="range" param-type="string" required="false">
+
+Set to `30d` to run the 30-day mode using hourly points over the last 30 days.
+
+
+</ParamField>
+
+<Request tabs="Single day,30 days" show-lines="false">
+
+```http
+GET /api/simulator/AAPL?startingCash=1000&date=2024-01-05 HTTP/1.1
+```
+
+```http
+GET /api/simulator/AAPL?startingCash=1000&range=30d HTTP/1.1
+```
+
+</Request>
+
+<Response tabs="200" show-lines="false">
+
+```json
+{
+  "ticker": "AAPL",
+  "simulatedDate": "2024-01-05",
+  "rangeMode": "day",
+  "startingCash": 1000,
+  "finalEquity": 1023.41,
+  "profitLoss": 23.41,
+  "profitLossPct": 2.34,
+  "isProfit": true,
+  "dayPoints": 78,
+  "trades": 4,
+  "buyCount": 2,
+  "sellCount": 2,
+  "summary": "Strategy returned +2.34% ($23.41). Made 4 trade(s) — 2 profitable, 0 losing.",
+  "finalCash": 1023.41,
+  "finalShares": 0,
+  "finalPrice": 167.03
+}
+```
+
+</Response>
+
+If a requested single-day simulation lacks enough points, the API attempts to fetch the date and then falls back to the nearest prior stored day with at least 20 points. The 30-day mode requires at least 60 hourly points.
+
+## Read chart timelines
+
+Use `GET /api/timeline/:ticker?window=...` to read stored chart points for a ticker. Timeline requests auto-fetch data when the selected window has too few stored points, and `refresh=1` forces a backfill for the selected window.
+
+<ParamField path="ticker" param-type="string" required="true">
+
+Ticker symbol for the chart. Path-based ticker APIs support URL-encoded symbols with special characters.
+
+
+</ParamField>
+
+<ParamField query="window" param-type="string" required="true">
+
+Chart window. Supported values are `1h`, `1d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`, `5y`, and `10y`.
+
+
+</ParamField>
+
+<ParamField query="refresh" param-type="number" required="false">
+
+Set to `1` to explicitly fetch or backfill the selected chart window before returning data.
+
+
+</ParamField>
+
+| Window | UI label | Data interval | Data range |
+|---|---|---|---|
+| `1h` | 1 Hour | `1m` | `1d` |
+| `1d` | 1 Day | `5m` | `1d` |
+| `1w` | 1 Week | `1h` | `1mo` |
+| `1m` | 1 Month | `1d` | `1mo` |
+| `3m` | 3 Months | `1d` | `3mo` |
+| `6m` | 6 Months | `1d` | `6mo` |
+| `1y` | 1 Year | `1d` | `1y` |
+| `2y` | 2 Years | `1wk` | `2y` |
+| `3y` | 3 Years | `1wk` | `3y` |
+| `5y` | 5 Years | `1wk` | `5y` |
+| `10y` | 10 Years | `1mo` | `10y` |
+
+The UI also calls `POST /api/refresh` for a full watchlist refresh and repeats that refresh every five minutes.
+
+## Manage the watchlist
+
+Watchlist APIs add, list, and remove tickers. Removing a ticker is blocked while the sandbox still holds shares for that ticker.
+
+<ParamField body="ticker" param-type="string" required="true">
+
+Ticker symbol used by `POST /api/watchlist` to add a symbol to the watchlist.
+
+
+</ParamField>
+
+<Request tabs="Add,Remove" show-lines="false">
+
+```http
+POST /api/watchlist HTTP/1.1
+Content-Type: application/json
+
+{"ticker":"AAPL"}
+```
+
+```http
+DELETE /api/watchlist/AAPL HTTP/1.1
+```
+
+</Request>
+
+<Response tabs="Added,Blocked removal" show-lines="false">
+
+```json
+{
+  "ticker": "AAPL"
+}
+```
+
+```json
+{
+  "error": "Cannot remove AAPL while you still hold 2.5000 shares."
+}
+```
+
+</Response>
+
+When deletion succeeds, the ticker is removed from the watchlist and stored snapshot history for that ticker is deleted. If the removed ticker was selected in the UI, the chart panel resets.
+
+## Use encoded ticker symbols
+
+Path-based ticker routes encode symbols in the browser and decode them on the server. This supports symbols such as `^IXIC`, `^GSPC`, and symbols containing `.` or `-`.
+
+Examples:
+
+```http
+GET /api/timeline/%5EIXIC?window=1d
+GET /api/quotes/%5EIXIC,%5EGSPC
+GET /api/simulator/%5EIXIC?startingCash=1000
+```
+
+The add-to-watchlist input accepts direct ticker-shaped text containing letters, numbers, `.`, and `-`. Caret-prefixed symbols are supported when encoded in path-based API calls.
+
+## Look up historical prices
+
+Use `GET /api/historical-price/:ticker?date=YYYY-MM-DD` to retrieve the average market price used for historical buys.
+
+<ParamField path="ticker" param-type="string" required="true">
+
+Ticker symbol for historical lookup.
+
+
+</ParamField>
+
+<ParamField query="date" param-type="string" required="true">
+
+Requested historical date in `YYYY-MM-DD` format.
+
+
+</ParamField>
+
+<ResponseField name="requestedDate" field-type="string" required="true">
+
+Date requested by the client.
+
+
+</ResponseField>
+
+<ResponseField name="price" field-type="number" required="true">
+
+Average price selected for the buy calculation.
+
+
+</ResponseField>
+
+<ResponseField name="pricingDate" field-type="string" required="true">
+
+Exact pricing date used. This can be the requested date or the nearest prior market day.
+
+
+</ResponseField>
+
+<ResponseField name="exactDate" field-type="boolean" required="true">
+
+Whether the pricing data came from the requested date.
+
+
+</ResponseField>
+
+If exact-date data is unavailable, the API fetches or backfills historical data and then falls back to the nearest prior market day on or before the requested date. If no data exists on or before that date, it returns `404`.
+
+## Buy without pre-adding to the watchlist
+
+The backend buy endpoint does not require the ticker to already be on the watchlist. The current UI buys the selected ticker, usually from the watchlist or built-in index entries.
+
+<ParamField body="ticker" param-type="string" required="true">
+
+Ticker symbol to buy.
+
+
+</ParamField>
+
+<ParamField body="amount" param-type="number" required="true">
+
+Sandbox cash amount to spend.
+
+
+</ParamField>
+
+<ParamField body="date" param-type="string" required="false">
+
+Historical buy date in `YYYY-MM-DD` format. When supplied, the trade uses historical average pricing and includes pricing details in the response.
+
+
+</ParamField>
+
+<Request tabs="Buy" show-lines="false">
+
+```http
+POST /api/buy HTTP/1.1
+Content-Type: application/json
+
+{"ticker":"AAPL","amount":100,"date":"2024-01-05"}
+```
+
+</Request>
+
+<Response tabs="200" show-lines="false">
+
+```json
+{
+  "ticker": "AAPL",
+  "shares": 0.54321,
+  "price": 184.09,
+  "total": 100,
+  "cash": 9900,
+  "date": "2024-01-05",
+  "pricingInfo": {
+    "price": 184.09,
+    "pricingDate": "2024-01-05",
+    "points": 78,
+    "exactDate": true
+  }
+}
+```
+
+</Response>
+
+## Read positions and valuation
+
+Use `GET /api/positions` to list current sandbox holdings with valuation fields.
+
+<ResponseField name="ticker" field-type="string" required="true">
+
+Ticker symbol for the holding.
+
+
+</ResponseField>
+
+<ResponseField name="shares" field-type="number" required="true">
+
+Number of shares currently held.
+
+
+</ResponseField>
+
+<ResponseField name="avg_cost" field-type="number" required="true">
+
+Average acquisition price for the holding.
+
+
+</ResponseField>
+
+<ResponseField name="current_price" field-type="number" required="true">
+
+Latest stored snapshot price when available, otherwise the average cost fallback.
+
+
+</ResponseField>
+
+<ResponseField name="cost_basis" field-type="number" required="true">
+
+Total cost basis, calculated as shares multiplied by average cost.
+
+
+</ResponseField>
+
+<ResponseField name="market_value" field-type="number" required="true">
+
+Current market value, calculated as shares multiplied by current price.
+
+
+</ResponseField>
+
+<ResponseField name="gain_loss" field-type="number" required="true">
+
+Dollar gain or loss relative to cost basis.
+
+
+</ResponseField>
+
+<ResponseField name="gain_pct" field-type="number" required="true">
+
+Percentage gain or loss relative to cost basis.
+
+
+</ResponseField>
+
+<ResponseField name="recommendation" field-type="object" required="false">
+
+Recommendation object returned with the position when available.
+
+
+</ResponseField>

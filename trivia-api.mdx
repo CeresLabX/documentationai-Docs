@@ -1,0 +1,207 @@
+---
+title: Trivia API
+description: Load dynamic trivia questions, filter by difficulty, and understand the current category behavior for CeresLab trivia games.
+---
+
+## Load trivia questions
+
+Trivia exposes public JSON endpoints for reading questions by game slug. The current 80s, 90s, and Seinfeld game pages load their board questions from backend data.
+
+<Callout kind="info">
+
+The public question API returns a flat list of questions. Category labels on the 80s, 90s, and Seinfeld boards are fixed in the frontend and are not returned by the API.
+
+
+</Callout>
+
+## Get all questions for a game
+
+Use `GET /api/questions/:game` to retrieve the question set for a game. The endpoint supports an optional numeric difficulty filter.
+
+<ParamField path="game" param-type="string" required="true">
+
+Game slug used by the frontend. Verified values include `80s`, `90s`, and `seinfeld`.
+
+
+</ParamField>
+
+<ParamField query="difficulty" param-type="number" required="false">
+
+Filters results to a single difficulty level when supplied. Verified game boards map difficulty levels `1` through `5` to point tiers from `$200` through `$1000`.
+
+
+</ParamField>
+
+<Request tabs="HTTP" show-lines="false">
+
+```http
+GET /api/questions/80s?difficulty=2 HTTP/1.1
+```
+
+</Request>
+
+<Response tabs="200" show-lines="false">
+
+```json
+[
+  {
+    "id": 42,
+    "difficulty": 2,
+    "question": "Which arcade game introduced players to Q-Bert in 1982?",
+    "options": ["Q-Bert", "Dig Dug", "Joust", "Robotron"],
+    "correct_index": 0,
+    "source": "https://en.wikipedia.org/wiki/Q*bert"
+  }
+]
+```
+
+</Response>
+
+### Question fields
+
+<ResponseField name="id" field-type="number" required="true">
+
+Unique question identifier returned by the backend.
+
+
+</ResponseField>
+
+<ResponseField name="difficulty" field-type="number" required="true">
+
+Numeric difficulty level used by the game boards to assign point values.
+
+
+</ResponseField>
+
+<ResponseField name="question" field-type="string" required="true">
+
+Question text displayed to the player.
+
+
+</ResponseField>
+
+<ResponseField name="options" field-type="string[]" required="true">
+
+Answer choices shown to the player.
+
+
+</ResponseField>
+
+<ResponseField name="correct_index" field-type="number" required="true">
+
+Zero-based index of the correct answer in the `options` array. This field is included in public API responses.
+
+
+</ResponseField>
+
+<ResponseField name="source" field-type="string|null" required="false">
+
+Source URL or source value associated with the question when available.
+
+
+</ResponseField>
+
+## Get one random question
+
+Use `GET /api/question/:game/random` to retrieve one random question for a game. The same optional difficulty filter is supported.
+
+<ParamField path="game" param-type="string" required="true">
+
+Game slug to select questions from, such as `80s`, `90s`, or `seinfeld`.
+
+
+</ParamField>
+
+<ParamField query="difficulty" param-type="number" required="false">
+
+Filters the random-selection pool before the backend chooses one question.
+
+
+</ParamField>
+
+<Request tabs="HTTP" show-lines="false">
+
+```http
+GET /api/question/seinfeld/random?difficulty=5 HTTP/1.1
+```
+
+</Request>
+
+<Response tabs="200,404" show-lines="false">
+
+```json
+{
+  "id": 314,
+  "difficulty": 5,
+  "question": "What is the name of the fictional movie Jerry and the gang repeatedly reference?",
+  "options": ["Rochelle, Rochelle", "Sack Lunch", "Prognosis Negative", "Death Blow"],
+  "correct_index": 0,
+  "source": null
+}
+```
+
+```json
+{
+  "error": "No questions found"
+}
+```
+
+</Response>
+
+If no question matches the requested game and optional difficulty, the random endpoint returns HTTP `404` with `No questions found`.
+
+## Current game-board categories
+
+The game pages show six fixed category buckets and distribute flat API questions into those buckets on the client side. The visible categories are presentation labels, not fields from the backend response.
+
+<Tabs>
+
+<Tab title="80s" icon="play-circle">
+
+The 80s board loads data from `GET /api/questions/80s` and presents these fixed categories:
+
+- `80s Movies`
+- `80s Music`
+- `80s TV`
+- `Video Games`
+- `Fads & Fashion`
+- `80s Icons`
+
+
+</Tab>
+
+<Tab title="90s" icon="play-circle">
+
+The 90s board loads data from `GET /api/questions/90s` and presents these fixed categories:
+
+- `90s Movies`
+- `90s Music`
+- `90s TV`
+- `Pop Culture`
+- `90s Sports`
+- `Video Games`
+
+
+</Tab>
+
+<Tab title="Seinfeld" icon="play-circle">
+
+The Seinfeld board loads data from `GET /api/questions/seinfeld` and presents these fixed categories:
+
+- `Episodes & Plots`
+- `Characters`
+- `Famous Quotes`
+- `Guest Stars`
+- `New York City`
+- `Seinfeld Trivia`
+
+
+</Tab>
+
+</Tabs>
+
+## Board behavior
+
+The verified game pages use a six-column Jeopardy-style board with fixed point rows: `$200`, `$400`, `$600`, `$800`, and `$1000`. A single Daily Double cell is randomly chosen for the board.
+
+Correct answers add points, wrong answers subtract points, and timeouts subtract points. The game ends after all 30 board cells have been used.
