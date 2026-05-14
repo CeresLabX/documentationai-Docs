@@ -13,53 +13,7 @@
     }
   },
   "navigation": {
-    "tabs": [
-      {
-        "tab": "Welcome",
-        "pages": [
-          {
-            "title": "Getting Started",
-            "path": "getting-started"
-          }
-        ],
-        "icon": "align-center",
-        "public": true
-      },
-      {
-        "tab": "Perfumery Materials",
-        "icon": "book",
-        "groups": [
-          {
-            "group": "Natural",
-            "pages": [],
-            "icon": "flower2"
-          },
-          {
-            "group": "Synthetic",
-            "pages": [
-              {
-                "title": "Sandalore",
-                "path": "sandalore",
-                "badge": "New"
-              }
-            ],
-            "icon": "test-tube-diagonal-icon"
-          }
-        ],
-        "public": true
-      },
-      {
-        "tab": "Product Research",
-        "pages": [
-          {
-            "title": "Dell Pro Max 16 Plus Laptop",
-            "path": "dell-pro-max-16-plus-laptop",
-            "icon": "laptop"
-          }
-        ],
-        "icon": "lucide-text-search"
-      }
-    ]
+    "pages": []
   },
   "initialRoute": "getting-started",
   "seo": {
