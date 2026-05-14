@@ -1,0 +1,436 @@
+---
+title: Room sharing, media, and playback
+description: Share Mod Room sessions by room code, browse Koofr media, control queue playback, and understand tracker support limits.
+---
+
+## Share a room by code
+
+Mod Room gives each room a short room code that works as the shareable entry point for the session. Create a room with a nickname, then share the room-code URL with other listeners.
+
+<Steps>
+
+<Step title="Create or join a room">
+
+Create a room from the landing page by entering a nickname. To join an existing room, enter the room code in the join form or open a shared room-code URL directly.
+
+
+</Step>
+<Step title="Share the room-code URL">
+
+The browser route for a shared room is `/room/code/:roomCode`. When someone opens that URL, Mod Room resolves the code to the room UUID and sends them into the active room.
+
+
+</Step>
+<Step title="Connect to room state">
+
+After the room loads, the client joins the live session with the `join-room` Socket.IO event and receives the current queue, users, and playback state in `room-state`.
+
+
+</Step>
+</Steps>
+
+### Room routes
+
+<ParamField path="code" param-type="string" required="true">
+
+Room code used by `GET /api/rooms/code/:code`. Codes must match the current room-code format: uppercase letters, numbers, and dashes, up to 10 characters after the first character.
+
+</ParamField>
+
+<ParamField path="roomId" param-type="uuid" required="true">
+
+Room UUID used by `/room/:roomId`, `GET /api/rooms/:roomId`, and live room socket joins.
+
+</ParamField>
+
+<Request tabs="Create room,Resolve room code,Get room" show-lines="true">
+```bash
+curl -X POST http://localhost:3000/api/rooms \
+  -H "Content-Type: application/json" \
+  -d '{"nickname":"Maya"}'
+```
+
+```bash
+curl http://localhost:3000/api/rooms/code/FOYER-5643
+```
+
+```bash
+curl http://localhost:3000/api/rooms/1f3f5400-9b0a-4e38-8c95-a4b36c6500b2
+```
+</Request>
+
+<Response tabs="201 Created,200 OK,200 OK" show-lines="true">
+```json
+{
+  "roomId": "1f3f5400-9b0a-4e38-8c95-a4b36c6500b2",
+  "roomCode": "FOYER-5643",
+  "nickname": "Maya"
+}
+```
+
+```json
+{
+  "id": "1f3f5400-9b0a-4e38-8c95-a4b36c6500b2"
+}
+```
+
+```json
+{
+  "id": "1f3f5400-9b0a-4e38-8c95-a4b36c6500b2",
+  "roomCode": "FOYER-5643",
+  "name": "Maya's Room",
+  "hostNickname": "Maya",
+  "playbackStatus": "playing",
+  "playbackTimestamp": 0,
+  "currentItemId": "q_7b91f0",
+  "queue": [
+    {
+      "id": "q_7b91f0",
+      "title": "stardust.memories.mod",
+      "mediaType": "audio",
+      "url": "/api/koofr/file?path=%2Fpublic%2Fmusic%2Fmod%2Fstardust.memories.mod",
+      "filename": "stardust.memories.mod",
+      "format": "MOD",
+      "duration": 0,
+      "addedBy": "Maya",
+      "position": 1
+    }
+  ],
+  "users": [
+    {
+      "nickname": "Maya",
+      "isHost": true
+    }
+  ]
+}
+```
+</Response>
+
+## Browse Koofr media from Add Media
+
+The Add Media modal includes a `KOOFR` tab beside `URL` and `UPLOAD`. The Koofr browser starts at `/public/music/mod`, lists directories first, prioritizes tracker files, and lets you add a selected file directly to the shared queue.
+
+<Callout kind="info">
+
+Koofr browsing depends on server-side Koofr configuration. If Koofr is not configured, the list and file proxy endpoints return `503` with `Koofr not configured`.
+
+
+</Callout>
+
+### List a Koofr folder
+
+Use `GET /api/koofr/list` to list files and folders for the current Koofr path.
+
+<ParamField query="path" param-type="string" required="false">
+
+Koofr folder path to browse. If omitted, the server uses `/public/music/mod`.
+
+</ParamField>
+
+<Request tabs="cURL" show-lines="true">
+```bash
+curl "http://localhost:3000/api/koofr/list?path=/public/music/mod"
+```
+</Request>
+
+<Response tabs="200 OK" show-lines="true">
+```json
+{
+  "files": [
+    {
+      "name": "stardust.memories.mod",
+      "path": "/public/music/mod/stardust.memories.mod",
+      "size": 184320,
+      "contentType": "application/octet-stream",
+      "isDirectory": false,
+      "format": "MOD",
+      "isTracker": true
+    },
+    {
+      "name": "sets",
+      "path": "/public/music/mod/sets",
+      "size": 0,
+      "contentType": "folder",
+      "isDirectory": true,
+      "format": "",
+      "isTracker": false
+    }
+  ],
+  "path": "/public/music/mod"
+}
+```
+</Response>
+
+### Stream a Koofr file
+
+Use `GET /api/koofr/file` to proxy a selected Koofr file through the Mod Room server. The response is the raw streamed file body, not a JSON document.
+
+<ParamField query="path" param-type="string" required="true">
+
+Koofr file path to stream. The browser uses this value to build queue item URLs such as `/api/koofr/file?path=%2Fpublic%2Fmusic%2Fmod%2Fstardust.memories.mod`.
+
+</ParamField>
+
+<Request tabs="cURL" show-lines="true">
+```bash
+curl -L "http://localhost:3000/api/koofr/file?path=/public/music/mod/stardust.memories.mod" \
+  --output stardust.memories.mod
+```
+</Request>
+
+<Response tabs="200 OK,400 Bad Request" show-lines="true">
+```text
+Binary file stream with Content-Type from Koofr or application/octet-stream.
+```
+
+```json
+{
+  "error": "path query parameter required"
+}
+```
+</Response>
+
+### Queue item created from Koofr
+
+When you add a Koofr file, Mod Room sends the same queue event used by other media sources. Tracker and common audio extensions are marked as `audio`; other files are marked as `video`.
+
+```json
+{
+  "url": "/api/koofr/file?path=%2Fpublic%2Fmusic%2Fmod%2Fstardust.memories.mod",
+  "title": "stardust.memories.mod",
+  "filename": "stardust.memories.mod",
+  "mediaType": "audio",
+  "format": "MOD",
+  "duration": 0
+}
+```
+
+## Play queue items with room sync
+
+Queue playback is synchronized through Socket.IO events. When a room is idle or has no current item, adding the first queue item immediately makes it current and starts playback for the room.
+
+### Add an item to the queue
+
+<ParamField body="item.url" param-type="string" required="true">
+
+Playable media URL. Koofr files use the `/api/koofr/file?path=...` proxy URL.
+
+</ParamField>
+
+<ParamField body="item.title" param-type="string" required="true">
+
+Display title shown in the queue and player.
+
+</ParamField>
+
+<ParamField body="item.filename" param-type="string" required="false">
+
+Original filename. Tracker detection can use this extension when `format` is not enough.
+
+</ParamField>
+
+<ParamField body="item.mediaType" param-type="string" required="true">
+
+Media type used by the player. Current values include `audio`, `video`, and `youtube`.
+
+</ParamField>
+
+<ParamField body="item.format" param-type="string" required="false">
+
+Detected media format such as `MOD`, `XM`, `MP3`, or `YOUTUBE`.
+
+</ParamField>
+
+<ParamField body="item.duration" param-type="number" required="false">
+
+Duration in seconds when known. Tracker files can use `0` while the player estimates duration.
+
+</ParamField>
+
+```json
+{
+  "event": "add-to-queue",
+  "payload": {
+    "item": {
+      "url": "/api/koofr/file?path=%2Fpublic%2Fmusic%2Fmod%2Fstardust.memories.mod",
+      "title": "stardust.memories.mod",
+      "filename": "stardust.memories.mod",
+      "mediaType": "audio",
+      "format": "MOD",
+      "duration": 0
+    }
+  }
+}
+```
+
+After the server adds the item, clients receive `queue-updated`. If the room was idle, clients also receive `playback-update` with the new item and `playing` status.
+
+```json
+{
+  "event": "playback-update",
+  "payload": {
+    "itemId": "q_7b91f0",
+    "status": "playing",
+    "timestamp": 0
+  }
+}
+```
+
+### Host playback controls
+
+Only the host can use the main play, pause, and next controls. Queue rows also include a play button for a specific item; when the host clicks it, the client emits `play` with that queue item's `itemId`.
+
+<Tabs>
+
+<Tab title="Play a specific item" icon="play-circle">
+
+```json
+{
+  "event": "play",
+  "payload": {
+    "itemId": "q_7b91f0"
+  }
+}
+```
+
+The server broadcasts the selected item as the current playing item.
+
+```json
+{
+  "event": "playback-update",
+  "payload": {
+    "itemId": "q_7b91f0",
+    "status": "playing",
+    "timestamp": 0
+  }
+}
+```
+
+
+</Tab>
+<Tab title="Pause playback" icon="pause">
+
+```json
+{
+  "event": "pause",
+  "payload": {}
+}
+```
+
+The server broadcasts the paused state and the current playback timestamp.
+
+```json
+{
+  "event": "playback-update",
+  "payload": {
+    "status": "paused",
+    "timestamp": 72.4
+  }
+}
+```
+
+
+</Tab>
+<Tab title="Skip to next" icon="chevron-right">
+
+```json
+{
+  "event": "next",
+  "payload": {}
+}
+```
+
+If another queue item exists, the server makes it current, starts playback, removes the previous first item, and broadcasts both `playback-update` and `queue-updated`.
+
+```json
+{
+  "event": "playback-update",
+  "payload": {
+    "itemId": "q_98d3a1",
+    "status": "playing",
+    "timestamp": 0
+  }
+}
+```
+
+
+</Tab>
+</Tabs>
+
+<Callout kind="alert">
+
+If a non-host emits `play` or `pause`, the server responds with the Socket.IO `error` event and the message `Only the host can control playback`. If a non-host emits `next`, the message is `Only the host can skip`.
+
+
+</Callout>
+
+## Play MOD and tracker files
+
+Mod Room supports tracker playback through the browser player. Tracker items use the same queue and playback events as other media; there are no tracker-specific socket events.
+
+Tracker detection recognizes these formats:
+
+| Format | Notes |
+| --- | --- |
+| `MOD` | Supported tracker format and shown with tracker labeling. |
+| `XM` | Supported tracker format and shown with tracker labeling. |
+| `S3M` | Supported tracker format and shown with tracker labeling. |
+| `IT` | Supported tracker format and shown with tracker labeling. |
+| `AHX`, `MPT`, `MED`, `MTM`, `669`, `ULT`, `STM`, `OKT` | Recognized as tracker formats for browsing and playback handling. |
+
+When the current item is a tracker file, the player labels it as `MOD/TRACKER` and uses the tracker playback path instead of the generic audio or video handler.
+
+### Seeking limitation for tracker files
+
+Tracker seeking is currently limited. The UI can emit `seek` with a `timestamp`, and the server broadcasts that timestamp to the room, but the tracker player does not perform real audio-position seeking.
+
+```json
+{
+  "event": "seek",
+  "payload": {
+    "timestamp": 123.45
+  }
+}
+```
+
+<Callout kind="alert">
+
+For tracker files, seeking updates the displayed time and room sync event, but it does not jump the actual tracker playback position. Treat tracker seeking as unsupported until pattern and row seeking are implemented.
+
+
+</Callout>
+
+## Event reference
+
+Use these event names when integrating with the current room behavior.
+
+<ExpandableGroup>
+
+<Expandable title="Client to server events">
+
+- `join-room` with `roomId` and `nickname`
+- `add-to-queue` with `item`
+- `play` with optional `itemId`
+- `pause` with an empty payload
+- `next` with an empty payload
+- `seek` with `timestamp`
+- `remove-from-queue` with `itemId`
+- `reaction` with `emoji`
+
+
+</Expandable>
+<Expandable title="Server to client events">
+
+- `room-state` with `room`, `queue`, `users`, and `clientsCount`
+- `queue-updated` with `queue`
+- `playback-update` with `itemId`, `status`, and `timestamp`
+- `seek` with `timestamp`
+- `activity` with `message` and `ts`
+- `user-joined` with `nickname` and `clientsCount`
+- `user-left` with `nickname` and `clientsCount`
+- `reaction` with `nickname`, `emoji`, and `ts`
+- `error` with `message`
+
+
+</Expandable>
+</ExpandableGroup>

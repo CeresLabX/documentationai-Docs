@@ -1,0 +1,628 @@
+---
+title: Simulator API and charting
+description: Run stock simulations, refresh chart windows, use encoded tickers, and understand trading API response fields in Stocks Sandbox.
+---
+
+## Simulate trades against historical market data
+
+Stocks Sandbox can run a buy-and-sell strategy for a ticker using stored snapshot data. Use the simulator endpoints to list usable dates, run a single-day simulation, or run a 30-day simulation with starting cash you choose.
+
+<Callout kind="info">
+
+Encode ticker symbols before placing them in a URL path. For example, `^IXIC` becomes `%5EIXIC` and `^GSPC` becomes `%5EGSPC`.
+
+
+
+</Callout>
+
+### List available simulator dates
+
+Use `GET /api/simulator/:ticker/dates` to return market days with enough 5-minute snapshot data for single-day simulation.
+
+<ParamField path="ticker" param-type="string" required="true">
+
+Ticker symbol to inspect. Path values are decoded by the API, so encoded index symbols such as `%5EIXIC` and `%5EGSPC` resolve to `^IXIC` and `^GSPC`.
+
+
+
+</ParamField>
+
+<Request tabs="cURL" show-lines="true">
+```bash
+curl "http://localhost:3000/api/simulator/%5EIXIC/dates"
+```
+</Request>
+
+<Response tabs="200 OK" show-lines="true">
+```json
+{
+  "ticker": "^IXIC",
+  "dates": [
+    {
+      "date": "2026-05-13",
+      "points": 78
+    },
+    {
+      "date": "2026-05-12",
+      "points": 76
+    }
+  ]
+}
+```
+</Response>
+
+### Run a simulator session
+
+Use `GET /api/simulator/:ticker` to simulate trades. By default, the simulator runs against a single trading day. Add `range=30d` to run across the latest 30-day hourly data window.
+
+<ParamField path="ticker" param-type="string" required="true">
+
+Ticker symbol to simulate. Use URL encoding for symbols with reserved characters, including `%5EIXIC` for `^IXIC`.
+
+
+
+</ParamField>
+
+<ParamField query="startingCash" param-type="number" required="false">
+
+Cash balance used at the start of the simulation. If omitted, the API uses `1000`.
+
+
+
+</ParamField>
+
+<ParamField query="date" param-type="string" required="false">
+
+Single trading day to simulate in `YYYY-MM-DD` format. The simulator uses stored 5-minute data for this mode and can backfill the requested day when too few points exist.
+
+
+
+</ParamField>
+
+<ParamField query="range" param-type="string" required="false">
+
+Set to `30d` to simulate the latest 30-day window. This mode uses hourly data from a one-month chart range.
+
+
+
+</ParamField>
+
+<Tabs>
+
+<Tab title="Single day" icon="bar-chart">
+
+<Request tabs="cURL" show-lines="true">
+```bash
+curl "http://localhost:3000/api/simulator/AAPL?startingCash=2500&date=2026-05-13"
+```
+</Request>
+
+
+
+</Tab>
+<Tab title="30-day range" icon="bar-chart">
+
+<Request tabs="cURL" show-lines="true">
+```bash
+curl "http://localhost:3000/api/simulator/%5EGSPC?startingCash=10000&range=30d"
+```
+</Request>
+
+
+
+</Tab>
+</Tabs>
+
+<Response tabs="200 OK" show-lines="true">
+```json
+{
+  "ticker": "^GSPC",
+  "simulatedDate": "last-30-days",
+  "rangeMode": "30d",
+  "startingCash": 10000,
+  "finalEquity": 10421.8,
+  "profitLoss": 421.8,
+  "profitLossPct": 4.22,
+  "isProfit": true,
+  "dayPoints": 712,
+  "firstTs": 1744592400,
+  "lastTs": 1747184400,
+  "trades": 8,
+  "buyCount": 4,
+  "sellCount": 4,
+  "tradeLog": [
+    {
+      "action": "BUY",
+      "price": 5212.34,
+      "shares": 1.91852,
+      "ts": 1744592400
+    }
+  ],
+  "equityCurve": [
+    {
+      "ts": 1744592400,
+      "equity": 10000
+    },
+    {
+      "ts": 1747184400,
+      "equity": 10421.8
+    }
+  ],
+  "summary": "Simulation finished with 8 trades and a 4.22% gain.",
+  "position": 0,
+  "finalCash": 10421.8,
+  "finalShares": 0,
+  "finalPrice": 5432.1,
+  "availableDates": [
+    {
+      "date": "2026-05-13",
+      "points": 78
+    }
+  ]
+}
+```
+</Response>
+
+<Callout kind="alert">
+
+Single-day simulation requires at least 20 intraday points. The 30-day mode requires at least 60 hourly points. If the API cannot find enough usable data after backfill and fallback checks, it returns a `404` error.
+
+
+
+</Callout>
+
+## Load chart timelines by window
+
+The chart endpoint returns an array of snapshot rows for the selected window. The browser uses the same endpoint when you switch between 1-hour, 1-day, weekly, monthly, and multi-year chart views.
+
+### Timeline endpoint
+
+Use `GET /api/timeline/:ticker?window=1d` to read chart points for a ticker.
+
+<ParamField path="ticker" param-type="string" required="true">
+
+Ticker symbol for the chart. Encoded path values are supported for symbols such as `%5EIXIC` and `%5EGSPC`.
+
+
+
+</ParamField>
+
+<ParamField query="window" param-type="string" required="false">
+
+Chart window to load. Supported values are `1h`, `1d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`, `5y`, and `10y`.
+
+
+
+</ParamField>
+
+<ParamField query="refresh" param-type="string" required="false">
+
+Set to `1` or `true` to force an on-demand fetch and store pass for the selected chart window before returning timeline rows.
+
+
+
+</ParamField>
+
+<Request tabs="Read chart,Refresh chart" show-lines="true">
+```bash
+curl "http://localhost:3000/api/timeline/AAPL?window=1d"
+```
+
+```bash
+curl "http://localhost:3000/api/timeline/%5EIXIC?window=1w&refresh=1"
+```
+</Request>
+
+<Response tabs="200 OK" show-lines="true">
+```json
+[
+  {
+    "price": 18234.45,
+    "fetched_at": "2026-05-13 14:35:00",
+    "fetched_timestamp": 1747146900,
+    "interval_sec": 300
+  },
+  {
+    "price": 18241.12,
+    "fetched_at": "2026-05-13 14:40:00",
+    "fetched_timestamp": 1747147200,
+    "interval_sec": 300
+  }
+]
+```
+</Response>
+
+### Supported chart windows
+
+| Window | Yahoo interval | Yahoo range | Typical use |
+| --- | --- | --- | --- |
+| `1h` | `1m` | `1d` | Near-real-time intraday movement |
+| `1d` | `5m` | `1d` | Current trading day |
+| `1w` | `1h` | `1mo` | Recent short-term trend |
+| `1m` | `1d` | `1mo` | Daily view over the latest month |
+| `3m` | `1d` | `3mo` | Quarterly movement |
+| `6m` | `1d` | `6mo` | Half-year trend |
+| `1y` | `1d` | `1y` | One-year performance |
+| `2y` | `1wk` | `2y` | Long-range weekly trend |
+| `3y` | `1wk` | `3y` | Multi-year weekly trend |
+| `5y` | `1wk` | `5y` | Five-year weekly trend |
+| `10y` | `1mo` | `10y` | Long-term monthly trend |
+
+When `refresh=1` is present, the API backfills the selected window even if data already exists. Without `refresh=1`, the API still backfills automatically when stored data is sparse: fewer than 45 points for `1h`, fewer than 50 points for `1d`, or fewer than 8 points for other windows.
+
+### Path-based snapshots endpoint
+
+Use `GET /api/timeline/:ticker` as the path-based snapshots endpoint. The route decodes the ticker from the URL path, reads stored snapshot rows for the selected chart window, and returns the rows as a JSON array.
+
+<ParamField path="ticker" param-type="string" required="true">
+
+Ticker symbol to load from stored snapshots. Encode reserved characters before sending the request, such as `%5EIXIC` for `^IXIC` and `%5EGSPC` for `^GSPC`.
+
+
+
+</ParamField>
+
+<ParamField query="window" param-type="string" required="false">
+
+Snapshot window to read. Supported values are `1h`, `1d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`, `5y`, and `10y`. The default is `1d`.
+
+
+
+</ParamField>
+
+<ParamField query="refresh" param-type="string" required="false">
+
+Set to `1` or `true` to backfill the selected window before the API returns snapshot rows.
+
+
+
+</ParamField>
+
+<Request tabs="cURL" show-lines="true">
+```bash
+curl "http://localhost:3000/api/timeline/%5EIXIC?window=1d&refresh=1"
+```
+</Request>
+
+<Response tabs="200 OK" show-lines="true">
+```json
+[
+  {
+    "price": 18234.45,
+    "fetched_at": "2026-05-13 14:35:00",
+    "fetched_timestamp": 1747146900,
+    "interval_sec": 300
+  },
+  {
+    "price": 18241.12,
+    "fetched_at": "2026-05-13 14:40:00",
+    "fetched_timestamp": 1747147200,
+    "interval_sec": 300
+  }
+]
+```
+</Response>
+
+## Use encoded tickers in path-based endpoints
+
+Ticker symbols are passed through URL paths across the simulator, charting, quotes, watchlist, historical-price, recommendation, and positions APIs. Always encode symbols before building those URLs.
+
+<CodeGroup tabs="JavaScript,cURL" show-lines={true}>
+```javascript
+const ticker = "^IXIC";
+const encodedTicker = encodeURIComponent(ticker);
+
+const response = await fetch(`/api/timeline/${encodedTicker}?window=1d`);
+const points = await response.json();
+
+console.log(points.length);
+```
+
+```bash
+curl "http://localhost:3000/api/timeline/%5EIXIC?window=1d"
+```
+</CodeGroup>
+
+The same encoding rule applies to these path-based endpoints:
+
+- `GET /api/timeline/:ticker`
+- `GET /api/historical-price/:ticker`
+- `GET /api/quotes/:tickers`
+- `GET /api/recommend/:ticker`
+- `GET /api/simulator/:ticker`
+- `GET /api/simulator/:ticker/dates`
+- `DELETE /api/watchlist/:ticker`
+- `DELETE /api/positions/:ticker`
+
+For quote batches, encode the comma-separated ticker string as one path segment. The stock market panel uses this pattern for index symbols such as `^IXIC` and `^GSPC`.
+
+## Understand watchlist deletion
+
+Deleting a watchlist item removes the ticker from the watchlist and deletes stored snapshots for that ticker. The API blocks deletion when you still hold shares, because removing snapshots would also remove pricing history used by the open position.
+
+<ParamField path="ticker" param-type="string" required="true">
+
+Ticker to remove from the watchlist. Encode symbols such as `^IXIC` before sending the request.
+
+
+
+</ParamField>
+
+<Request tabs="Delete watchlist item" show-lines="true">
+```bash
+curl -X DELETE "http://localhost:3000/api/watchlist/AAPL"
+```
+</Request>
+
+<Response tabs="200 OK,409 Conflict" show-lines="true">
+```json
+{
+  "deleted": "AAPL"
+}
+```
+
+```json
+{
+  "error": "Cannot remove AAPL while you still hold 4.1234 shares."
+}
+```
+</Response>
+
+<Callout kind="alert">
+
+Watchlist deletion is not only a display change. A successful deletion also removes stored snapshots for the ticker.
+
+
+
+</Callout>
+
+## Buy with historical pricing
+
+The buy API accepts an optional historical date. When you include a date, Stocks Sandbox prices the buy from stored or backfilled market data instead of the latest quote.
+
+### Preview historical price
+
+Use `GET /api/historical-price/:ticker?date=YYYY-MM-DD` to preview the price source before buying.
+
+<ParamField path="ticker" param-type="string" required="true">
+
+Ticker to price. Encode path values when the symbol contains reserved characters.
+
+
+
+</ParamField>
+
+<ParamField query="date" param-type="string" required="true">
+
+Requested trading date in `YYYY-MM-DD` format.
+
+
+
+</ParamField>
+
+<Request tabs="cURL" show-lines="true">
+```bash
+curl "http://localhost:3000/api/historical-price/AAPL?date=2025-05-01"
+```
+</Request>
+
+<Response tabs="200 OK" show-lines="true">
+```json
+{
+  "ticker": "AAPL",
+  "requestedDate": "2025-05-01",
+  "price": 121.23,
+  "pricingDate": "2025-05-01",
+  "points": 78,
+  "firstAt": "2025-05-01T13:30:00.000Z",
+  "lastAt": "2025-05-01T20:00:00.000Z",
+  "exactDate": true
+}
+```
+</Response>
+
+### Place a historical buy
+
+Use `POST /api/buy` with `ticker`, `amount`, and optional `date`. Historical buys are stored with the historical pricing date and tagged as `historical buy` in transactions.
+
+<ParamField body="ticker" param-type="string" required="true">
+
+Ticker to buy. The request body uses the raw symbol, such as `AAPL` or `^IXIC`.
+
+
+
+</ParamField>
+
+<ParamField body="amount" param-type="number" required="true">
+
+Cash amount to spend. The amount must be greater than `0`.
+
+
+
+</ParamField>
+
+<ParamField body="date" param-type="string" required="false">
+
+Historical date in `YYYY-MM-DD` format. When omitted, the API buys using the latest available quote.
+
+
+
+</ParamField>
+
+<Request tabs="Historical buy" show-lines="true">
+```bash
+curl -X POST "http://localhost:3000/api/buy" \
+  -H "Content-Type: application/json" \
+  -d '{"ticker":"AAPL","amount":500,"date":"2025-05-01"}'
+```
+</Request>
+
+<Response tabs="200 OK" show-lines="true">
+```json
+{
+  "ticker": "AAPL",
+  "shares": 4.12345678,
+  "price": 121.23,
+  "total": 500,
+  "cash": 9500,
+  "date": "2025-05-01",
+  "pricingInfo": {
+    "price": 121.23,
+    "pricingDate": "2025-05-01",
+    "points": 78,
+    "firstAt": "2025-05-01T13:30:00.000Z",
+    "lastAt": "2025-05-01T20:00:00.000Z",
+    "exactDate": true
+  }
+}
+```
+</Response>
+
+If exact-day data is unavailable, the API backfills an appropriate historical range and retries. If the exact day still has no usable data, the API can use the nearest prior market day on or before the requested date.
+
+## Read positions with derived values
+
+`GET /api/positions` returns each open position with current pricing and derived profit-and-loss fields. The UI uses these fields directly when rendering holdings.
+
+<ResponseField name="current_price" field-type="number" required="true">
+
+Latest stored snapshot price for the ticker. If no snapshot exists, the API falls back to the position average cost.
+
+
+
+</ResponseField>
+
+<ResponseField name="priced_at" field-type="string or null" required="false">
+
+Timestamp for the snapshot used as the current price.
+
+
+
+</ResponseField>
+
+<ResponseField name="cost_basis" field-type="number" required="true">
+
+Total amount invested in the position, calculated from shares multiplied by average cost.
+
+
+
+</ResponseField>
+
+<ResponseField name="market_value" field-type="number" required="true">
+
+Current value of the position, calculated from shares multiplied by current price.
+
+
+
+</ResponseField>
+
+<ResponseField name="gain_loss" field-type="number" required="true">
+
+Unrealized profit or loss in cash terms.
+
+
+
+</ResponseField>
+
+<ResponseField name="gain_pct" field-type="number" required="true">
+
+Unrealized profit or loss as a percentage of cost basis.
+
+
+
+</ResponseField>
+
+<ResponseField name="recommendation" field-type="object" required="false">
+
+Recommendation data computed for the ticker and included with the position row.
+
+
+
+</ResponseField>
+
+<Request tabs="cURL" show-lines="true">
+```bash
+curl "http://localhost:3000/api/positions"
+```
+</Request>
+
+<Response tabs="200 OK" show-lines="true">
+```json
+[
+  {
+    "ticker": "AAPL",
+    "shares": 4.12345678,
+    "avg_cost": 121.23,
+    "current_price": 128.76,
+    "priced_at": "2026-05-13T20:00:00.000Z",
+    "cost_basis": 500,
+    "market_value": 530.98,
+    "gain_loss": 30.98,
+    "gain_pct": 6.2,
+    "recommendation": {
+      "action": "HOLD",
+      "score": 62
+    }
+  }
+]
+```
+</Response>
+
+### Sell all shares
+
+Use `DELETE /api/positions/:ticker` to sell the entire open position for a ticker. The sell API does not expose a partial-share sell operation.
+
+<Request tabs="cURL" show-lines="true">
+```bash
+curl -X DELETE "http://localhost:3000/api/positions/AAPL"
+```
+</Request>
+
+<Response tabs="200 OK" show-lines="true">
+```json
+{
+  "ticker": "AAPL",
+  "shares": 4.12345678,
+  "price": 128.76,
+  "refund": 530.98,
+  "cash": 10030.98
+}
+```
+</Response>
+
+## API behavior checklist
+
+<ExpandableGroup>
+
+<Expandable title="When should I use refresh on chart timelines?">
+
+Use `refresh=1` when a selected chart window looks stale or incomplete. The endpoint fetches and stores points for that specific window, then returns the timeline array.
+
+
+
+</Expandable>
+
+<Expandable title="How should I send index symbols such as NASDAQ and S&P 500?">
+
+Encode the ticker in the path. Send `^IXIC` as `%5EIXIC` and `^GSPC` as `%5EGSPC`.
+
+
+
+</Expandable>
+
+<Expandable title="What happens when I delete a watchlist ticker?">
+
+If you do not hold shares, the API deletes the watchlist row and snapshots for that ticker. If you still hold shares, the API returns `409 Conflict` and leaves the ticker data in place.
+
+
+
+</Expandable>
+
+<Expandable title="What does range 30d change in the simulator?">
+
+`range=30d` switches the simulator from single-day 5-minute data to the latest 30-day hourly data window.
+
+
+
+</Expandable>
+</ExpandableGroup>
